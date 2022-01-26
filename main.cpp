@@ -1,4 +1,5 @@
 #include <Servo.h>
+#define LED 13
 #define echoPin 2 
 #define trigPin 3 
 
@@ -15,8 +16,10 @@ void setup() {
   Serial.begin(9600); // // Serial Communication is starting with 9600 of baudrate speed
   Serial.println("Ultrasonic Sensor HC-SR04 Test"); // print some text in Serial Monitor
   Serial.println("with Arduino UNO R3");
+  pinMode(LED, OUTPUT);
 }
 void loop() {
+  servoMotor.write(0);
   // Clears the trigPin condition
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -36,10 +39,15 @@ void loop() {
   if(distance<30)
   {
     servoMotor.write(180);  // Turn Servo back to center position (90 degrees)
-   delay(3000); 
+    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  	delay(500);                       // wait for a second
+  	digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+    delay(3000);
+    
   }
    else{
      servoMotor.write(0);
+     digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
      delay(50);
    }
 }
