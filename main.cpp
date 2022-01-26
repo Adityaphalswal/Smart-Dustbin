@@ -6,11 +6,13 @@
 #define echoPin2 4 
 #define trigPin2 5 
 #define buzzer 7 
+#define SwitchPin 8
 
 Servo servoMotor;
-int buttonState = 0;
+int SwitchState = 0;
 int flag=0;
 long duration, distance, FrontSensor,InnerSensor;
+
 void setup() {
   Serial.begin(9600);
   servoMotor.attach(6);
@@ -22,6 +24,7 @@ void setup() {
   Serial.println("with Arduino UNO R3");
   pinMode(LED, OUTPUT);
   pinMode(LED2, OUTPUT);
+  pinMode(SwitchPin, INPUT);
 }
 void loop() {
   servoMotor.write(0);
@@ -35,6 +38,7 @@ void loop() {
   Serial.print(" Distance2: ");
   Serial.print(InnerSensor);
   Serial.println(" cm");
+  SwitchState = digitalRead(SwitchPin);
   
   if((InnerSensor)<10){
     digitalWrite(LED2, HIGH);   
@@ -43,7 +47,19 @@ void loop() {
     digitalWrite(LED2, LOW);
   	noTone(buzzer);   
     Serial.println("The dustbin is full. Please Empty it to Use Again.");
-   }
+    SwitchState = digitalRead(SwitchPin);
+  	Serial.println(SwitchState);
+    while (SwitchState == HIGH) {
+    digitalWrite(13, HIGH);
+    servoMotor.write(90);
+    digitalWrite(LED2, LOW);
+  	noTone(buzzer);
+    SwitchState = digitalRead(SwitchPin);
+  		} 
+    //else {
+    		digitalWrite(13, LOW);
+  	//}
+  }
    else{
      digitalWrite(LED2, LOW);  
      
@@ -55,8 +71,7 @@ void loop() {
   	digitalWrite(LED, LOW);
     servoMotor.write(0);
     delay(3000);
-  }
-   else{
+  }   else{
      servoMotor.write(0);
      digitalWrite(LED, LOW);    
    };
@@ -74,3 +89,4 @@ duration = pulseIn(echoPin, HIGH);
 distance = duration * 0.034 /2;
 
 }
+
