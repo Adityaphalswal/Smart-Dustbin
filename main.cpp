@@ -1,21 +1,25 @@
 #include <Servo.h>
-#define LED 13
-#define LED2 12
+#define LED A1
+#define LED2 A0
+#define LED3 A2
 #define echoPin1 2 
 #define trigPin1 3 
-#define echoPin2 4 
-#define trigPin2 5 
-#define buzzer 7 
-#define SwitchPin 8
+#define echoPin2 A3 
+#define trigPin2 A4 
+#define buzzer A5 
+#define SwitchPin 4
 
 Servo servoMotor;
 int SwitchState = 0;
 int flag=0;
+int lidOpen=30;
+int fullDustbin=10;
+bool isBeeping=true;
 long duration, distance, FrontSensor,InnerSensor;
 
 void setup() {
   Serial.begin(9600);
-  servoMotor.attach(6);
+  servoMotor.attach(5);
   pinMode(trigPin1, OUTPUT); 
   pinMode(echoPin1, INPUT); 
   pinMode(trigPin2, OUTPUT);
@@ -24,6 +28,7 @@ void setup() {
   Serial.println("with Arduino UNO R3");
   pinMode(LED, OUTPUT);
   pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
   pinMode(SwitchPin, INPUT);
 }
 void loop() {
@@ -40,15 +45,23 @@ void loop() {
   Serial.println(" cm");
   SwitchState = digitalRead(SwitchPin);
   
-  if((InnerSensor)<10){
-    digitalWrite(LED2, HIGH);   
-    tone(buzzer, 1000); 
+
+  if((InnerSensor)<fullDustbin){
+    digitalWrite(LED2, HIGH); 
+    if(isBeeping){
+      tone(buzzer, 1000); 
   	delay(1000); 
+      noTone(buzzer);
+    }else{
+     noTone(buzzer);
+      digitalWrite(LED2, LOW);
+    }
     digitalWrite(LED2, LOW);
-  	noTone(buzzer);   
+    delay(1000);
     Serial.println("The dustbin is full. Please Empty it to Use Again.");
     SwitchState = digitalRead(SwitchPin);
   	Serial.println(SwitchState);
+    isBeeping=false;
     while (SwitchState == HIGH) {
     digitalWrite(13, HIGH);
     servoMotor.write(90);
@@ -63,7 +76,7 @@ void loop() {
    else{
      digitalWrite(LED2, LOW);  
      
-     if(FrontSensor<30)
+     if(FrontSensor<lidOpen)
   {
     servoMotor.write(90);  
     digitalWrite(LED, HIGH);   
@@ -89,4 +102,3 @@ duration = pulseIn(echoPin, HIGH);
 distance = duration * 0.034 /2;
 
 }
-
