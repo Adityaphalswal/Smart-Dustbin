@@ -1,104 +1,161 @@
+#include <stdio.h>
 #include <Servo.h>
-#define LED A1
-#define LED2 A0
-#define LED3 A2
-#define echoPin1 2 
-#define trigPin1 3 
-#define echoPin2 A3 
-#define trigPin2 A4 
-#define buzzer A5 
-#define SwitchPin 4
-
 Servo servoMotor;
+#include <LiquidCrystal.h>
+#define LEDGreen A1
+#define LEDRed A0
+#define LEDBlue A2
+#define echoPin1 2
+#define trigPin1 3
+#define echoPin2 A3
+#define trigPin2 A4
+#define buzzer A5
+#define SwitchPin 4
+const int rs = 12, en = 11, d4 = 10, d5 = 9, d6 = 8, d7 = 7;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 int SwitchState = 0;
-int flag=0;
-int lidOpen=30;
-int fullDustbin=10;
-bool isBeeping=true;
-long duration, distance, FrontSensor,InnerSensor;
+int flag = 0;
+int lidOpen = 30;
+int fullDustbin = 10;
+int halfDustbin = 20;
+int emptyDustbin = 60;
+bool isBeeping = true;
+int duration, distance, FrontSensor, InnerSensor;
 
-void setup() {
-  Serial.begin(9600);
-  servoMotor.attach(5);
-  pinMode(trigPin1, OUTPUT); 
-  pinMode(echoPin1, INPUT); 
-  pinMode(trigPin2, OUTPUT);
-  pinMode(echoPin2, INPUT); 
-  Serial.println("Ultrasonic Sensor HC-SR04 Test"); 
-  Serial.println("with Arduino UNO R3");
-  pinMode(LED, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(SwitchPin, INPUT);
+void setup()
+{
+    Serial.begin(9600);
+    servoMotor.attach(5);
+    pinMode(trigPin1, OUTPUT);
+    pinMode(echoPin1, INPUT);
+    pinMode(trigPin2, OUTPUT);
+    pinMode(echoPin2, INPUT);
+    pinMode(LEDRed, OUTPUT);
+    pinMode(LEDGreen, OUTPUT);
+    pinMode(LEDBlue, OUTPUT);
+    pinMode(SwitchPin, INPUT);
+    lcd.begin(16, 2);
 }
-void loop() {
-  servoMotor.write(0);
-  SonarSensor(trigPin1, echoPin1);
-  FrontSensor = distance;
-  SonarSensor(trigPin2, echoPin2);
-  InnerSensor = distance;
-  Serial.print("Distance: ");
-  Serial.print(FrontSensor);
-  Serial.println(" cm");
-  Serial.print(" Distance2: ");
-  Serial.print(InnerSensor);
-  Serial.println(" cm");
-  SwitchState = digitalRead(SwitchPin);
-  
+void loop()
+{
+    servoMotor.write(0);
+    SonarSensor(trigPin1, echoPin1);
+    FrontSensor = distance;
+    SonarSensor(trigPin2, echoPin2);
+    InnerSensor = distance;
+    Serial.print("Distance: ");
+    Serial.print(FrontSensor);
+    Serial.println(" cm");
+    Serial.print(" Distance2: ");
+    Serial.print(InnerSensor);
+    Serial.println(" cm");
+    SwitchState = digitalRead(SwitchPin);
 
-  if((InnerSensor)<fullDustbin){
-    digitalWrite(LED2, HIGH); 
-    if(isBeeping){
-      tone(buzzer, 1000); 
-  	delay(1000); 
-      noTone(buzzer);
-    }else{
-     noTone(buzzer);
-      digitalWrite(LED2, LOW);
+    if (InnerSensor < 5)
+    {
+        digitalWrite(LEDRed, HIGH);
+        while (isBeeping)
+        {
+            beep();
+        }
+        lcd.setCursor(0, 0);
+        lcd.print("The dustbin is");
+        lcd.setCursor(0,1);
+        lcd.print("full.");
+        delay(1500);
+      	lcd.clear();
+        SwitchState = digitalRead(SwitchPin);
+        while (SwitchState == HIGH)
+        {
+            offLed();
+            servoMotor.write(90);
+            digitalWrite(LEDGreen, HIGH);
+            SwitchState = digitalRead(SwitchPin);
+            offLed();
+        }
+        digitalWrite(LEDRed, HIGH);
     }
-    digitalWrite(LED2, LOW);
-    delay(1000);
-    Serial.println("The dustbin is full. Please Empty it to Use Again.");
-    SwitchState = digitalRead(SwitchPin);
-  	Serial.println(SwitchState);
-    isBeeping=false;
-    while (SwitchState == HIGH) {
-    digitalWrite(13, HIGH);
+    else
+    {
+        if (InnerSensor < 60 && InnerSensor > 30)
+        {
+            offLed();
+            digitalWrite(LEDGreen, HIGH);
+            if (FrontSensor < lidOpen)
+            {
+                offLed();
+                moveServo();
+            }
+            else
+            {
+                digitalWrite(LEDGreen, HIGH);
+            }
+            lcd.setCursor(0, 0);
+            lcd.print("The dustbin is");
+          	lcd.setCursor(0, 1);
+            lcd.print("empty.");
+          	delay(1500);
+          	lcd.clear();
+        }
+        else if (InnerSensor < 30 && InnerSensor > 5)
+        {
+            offLed();
+            digitalWrite(LEDBlue, HIGH);
+            if (FrontSensor < lidOpen)
+            {
+                offLed();
+                moveServo();
+            }
+            else
+            {
+                digitalWrite(LEDBlue, HIGH);
+            }
+            lcd.setCursor(0, 0);
+            lcd.print("The dustbin is");
+          	lcd.setCursor(0, 1);
+            lcd.print("nearly full.");
+          	delay(1500);
+          	lcd.clear();
+        }
+    }
+}
+
+void offLed()
+{
+    digitalWrite(LEDRed, LOW);
+    digitalWrite(LEDBlue, LOW);
+    digitalWrite(LEDGreen, LOW);
+}
+
+void moveServo()
+{
+    lcd.setCursor(0, 0);
+    lcd.print("Lid is Opening...");
     servoMotor.write(90);
-    digitalWrite(LED2, LOW);
-  	noTone(buzzer);
-    SwitchState = digitalRead(SwitchPin);
-  		} 
-    //else {
-    		digitalWrite(13, LOW);
-  	//}
-  }
-   else{
-     digitalWrite(LED2, LOW);  
-     
-     if(FrontSensor<lidOpen)
-  {
-    servoMotor.write(90);  
-    digitalWrite(LED, HIGH);   
-  	delay(3000);                       
-  	digitalWrite(LED, LOW);
+    offLed();
+    digitalWrite(LEDGreen, HIGH);
+    delay(3000);
+    digitalWrite(LEDGreen, LOW);
     servoMotor.write(0);
     delay(3000);
-  }   else{
-     servoMotor.write(0);
-     digitalWrite(LED, LOW);    
-   };
-   }
+    noTone(buzzer);lcd.clear();
 }
-
-void SonarSensor(int trigPin,int echoPin)
+void beep()
 {
-digitalWrite(trigPin, LOW);
-delayMicroseconds(2);
-digitalWrite(trigPin, HIGH);
-delayMicroseconds(10);
-digitalWrite(trigPin, LOW);
-duration = pulseIn(echoPin, HIGH);
-distance = duration * 0.034 /2;
-
+    tone(buzzer, 1000);
+    delay(1000);
+    noTone(buzzer);
+    isBeeping = false;
 }
+void SonarSensor(int trigPin, int echoPin)
+{
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    duration = pulseIn(echoPin, HIGH);
+    distance = duration * 0.034 / 2;
+}
+
